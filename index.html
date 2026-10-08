@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Edelmetaal Dashboard</title>
+<meta name="theme-color" content="#111827">
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--gold:#b88900;--silver:#64748b;--accent:#111827;--danger:#b91c1c}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:980px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}
+h1{font-size:28px;margin:0}.sub{color:var(--muted);font-size:14px;margin-top:5px}.status{font-size:12px;color:var(--muted);text-align:right}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+.label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.big{font-size:28px;font-weight:800;margin-top:8px}.mid{font-size:20px;font-weight:750;margin-top:6px}
+.meta{font-size:13px;color:var(--muted);margin-top:5px}.gold{border-top:4px solid var(--gold)}.silver{border-top:4px solid var(--silver)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}button{border:0;border-radius:12px;padding:11px 15px;font-weight:700;cursor:pointer;background:#111827;color:#fff}
+button.secondary{background:#fff;color:#111827;border:1px solid var(--line)}button.danger{background:#fff;color:var(--danger);border:1px solid #fecaca}
+.tablecard{padding:0;overflow:hidden}.tablehead{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+table{width:100%;border-collapse:collapse}th,td{padding:13px 14px;border-bottom:1px solid var(--line);font-size:14px;text-align:left}th{font-size:12px;color:var(--muted);background:#fafafa}
+td.num,th.num{text-align:right}.empty{text-align:center;color:var(--muted);padding:34px}.pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:#f3f4f6}
+.pricebar{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.price{font-size:15px;font-weight:700}.tiny{font-size:12px;color:var(--muted)}
+dialog{border:0;border-radius:18px;padding:0;max-width:460px;width:calc(100% - 28px);box-shadow:0 20px 60px rgba(0,0,0,.25)}dialog::backdrop{background:rgba(0,0,0,.35)}
+.form{padding:20px}.form h2{margin:0 0 16px}.field{margin:12px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #d1d5db;font-size:16px;background:#fff}.formactions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+.footer{font-size:12px;color:var(--muted);margin-top:16px;line-height:1.5}
+@media(max-width:700px){.wrap{padding:14px}.top{display:block}.status{text-align:left;margin-top:8px}.grid{grid-template-columns:1fr}.pricebar{grid-template-columns:1fr}.tablecard{overflow-x:auto}table{min-width:720px}h1{font-size:24px}.big{font-size:25px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>Edelmetaal Dashboard</h1><div class="sub">Mijn goud- en zilvervoorraad op actuele spotwaarde</div></div>
+    <div class="status" id="status">Spotprijzen laden…</div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Totale waarde</div><div class="big" id="totalValue">€ 0,00</div><div class="meta" id="totalItems">0 stuks</div></div>
+    <div class="card gold"><div class="label">Goud</div><div class="big" id="goldValue">€ 0,00</div><div class="meta"><span id="goldWeight">0,000 g</span> puur goud</div></div>
+    <div class="card silver"><div class="label">Zilver</div><div class="big" id="silverValue">€ 0,00</div><div class="meta"><span id="silverWeight">0,000 g</span> puur zilver</div></div>
+  </div>
+
+  <div class="pricebar">
+    <div class="card"><div class="label">Live goud spot</div><div class="price" id="goldSpot">—</div><div class="tiny">EUR per gram</div></div>
+    <div class="card"><div class="label">Live zilver spot</div><div class="price" id="silverSpot">—</div><div class="tiny">EUR per gram</div></div>
+  </div>
+
+  <div class="actions">
+    <button id="addBtn">+ Munt of baar toevoegen</button>
+    <button class="secondary" id="refreshBtn">Spotprijs verversen</button>
+  </div>
+
+  <div class="card tablecard">
+    <div class="tablehead"><strong>Mijn bezit</strong><span class="tiny" id="rowCount">0 regels</span></div>
+    <div id="tableWrap"></div>
+  </div>
+
+  <div class="footer">Je gegevens worden alleen in deze browser opgeslagen. Spotprijzen komen van XAUS en zijn indicatieve mid-market referentieprijzen. De app ververst bij openen en daarna automatisch ongeveer elke minuut.</div>
+</div>
+
+<dialog id="entryDialog">
+<form method="dialog" class="form" id="entryForm">
+  <h2>Toevoegen</h2>
+  <div class="field"><label for="name">Naam</label><input id="name" required placeholder="Bijv. Gouden dukaat 1928"></div>
+  <div class="field"><label for="metal">Metaal</label><select id="metal"><option value="gold">Goud</option><option value="silver">Zilver</option></select></div>
+  <div class="field"><label for="weight">Puur gewicht per stuk (gram)</label><input id="weight" type="number" inputmode="decimal" step="0.0001" min="0.0001" required placeholder="Bijv. 3,494"></div>
+  <div class="field"><label for="qty">Aantal</label><input id="qty" type="number" inputmode="numeric" step="1" min="1" required value="1"></div>
+  <div class="formactions"><button type="button" class="secondary" id="cancelBtn">Annuleren</button><button type="submit">Opslaan</button></div>
+</form>
+</dialog>
+
+<script>
+const OZT_G = 31.1034768;
+const storeKey = 'edelmetaal_holdings_v2';
+let holdings = JSON.parse(localStorage.getItem(storeKey) || '[]');
+let prices = {gold:null,silver:null,updated:null,stale:false};
+
+const euro = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(v || 0);
+const grams = v => new Intl.NumberFormat('nl-NL',{minimumFractionDigits:3,maximumFractionDigits:3}).format(v || 0) + ' g';
+const num = v => Number(String(v).replace(',','.'));
+
+function save(){ localStorage.setItem(storeKey, JSON.stringify(holdings)); render(); }
+
+async function loadPrices(){
+  const status = document.getElementById('status');
+  status.textContent = 'Spotprijzen laden…';
+  try{
+    const fresh = Math.floor(Date.now()/60000);
+    const res = await fetch('https://xaus.com/api/v1/spot?currency=EUR&unit=gram&compact=1&fresh='+fresh,{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const d = await res.json();
+    const fx = Number(d.fx_rate);
+    const gold = Number(d?.xau?.price);
+    const silverUsdOz = Number(d.silver_usd_oz);
+    const silver = silverUsdOz * fx / OZT_G;
+    if(!Number.isFinite(gold) || !Number.isFinite(silver)) throw new Error('Ongeldige koersdata');
+    prices = {gold,silver,updated:d.updated_at || new Date().toISOString(),stale:!!d.stale};
+    localStorage.setItem('edelmetaal_last_prices', JSON.stringify(prices));
+    render();
+  }catch(e){
+    const cached = JSON.parse(localStorage.getItem('edelmetaal_last_prices') || 'null');
+    if(cached){ prices = cached; render(); status.textContent = 'Laatste bekende prijzen · live feed tijdelijk niet bereikbaar'; }
+    else status.textContent = 'Spotprijzen konden niet worden geladen';
+  }
+}
+
+function render(){
+  const gw = holdings.filter(x=>x.metal==='gold').reduce((s,x)=>s+x.weight*x.qty,0);
+  const sw = holdings.filter(x=>x.metal==='silver').reduce((s,x)=>s+x.weight*x.qty,0);
+  const gv = prices.gold ? gw*prices.gold : 0;
+  const sv = prices.silver ? sw*prices.silver : 0;
+  const count = holdings.reduce((s,x)=>s+x.qty,0);
+
+  document.getElementById('totalValue').textContent = euro(gv+sv);
+  document.getElementById('goldValue').textContent = euro(gv);
+  document.getElementById('silverValue').textContent = euro(sv);
+  document.getElementById('goldWeight').textContent = grams(gw);
+  document.getElementById('silverWeight').textContent = grams(sw);
+  document.getElementById('totalItems').textContent = count + (count===1?' stuk':' stuks');
+  document.getElementById('goldSpot').textContent = prices.gold ? euro(prices.gold) : '—';
+  document.getElementById('silverSpot').textContent = prices.silver ? euro(prices.silver) : '—';
+  document.getElementById('rowCount').textContent = holdings.length + (holdings.length===1?' regel':' regels');
+
+  if(prices.updated){
+    const dt = new Date(prices.updated);
+    document.getElementById('status').textContent = (prices.stale?'Laatste bekende spot · ':'Live spot · ') + dt.toLocaleString('nl-NL',{dateStyle:'short',timeStyle:'short'});
+  }
+
+  const wrap = document.getElementById('tableWrap');
+  if(!holdings.length){ wrap.innerHTML='<div class="empty">Nog niets toegevoegd.</div>'; return; }
+
+  wrap.innerHTML = `<table><thead><tr><th>Naam</th><th>Metaal</th><th class="num">Puur/stuk</th><th class="num">Aantal</th><th class="num">Totaal puur</th><th class="num">Waarde</th><th></th></tr></thead><tbody>` +
+    holdings.map((x,i)=>{
+      const tw=x.weight*x.qty, p=x.metal==='gold'?prices.gold:prices.silver, v=p?tw*p:0;
+      return `<tr><td><strong>${escapeHtml(x.name)}</strong></td><td><span class="pill">${x.metal==='gold'?'Goud':'Zilver'}</span></td><td class="num">${grams(x.weight)}</td><td class="num">${x.qty}</td><td class="num">${grams(tw)}</td><td class="num"><strong>${euro(v)}</strong></td><td class="num"><button class="danger" onclick="removeRow(${i})">Verwijder</button></td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function removeRow(i){ if(confirm('Deze regel verwijderen?')){ holdings.splice(i,1); save(); } }
+
+const dialog=document.getElementById('entryDialog');
+document.getElementById('addBtn').onclick=()=>dialog.showModal();
+document.getElementById('cancelBtn').onclick=()=>dialog.close();
+document.getElementById('refreshBtn').onclick=loadPrices;
+document.getElementById('entryForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=document.getElementById('name').value.trim();
+  const metal=document.getElementById('metal').value;
+  const weight=num(document.getElementById('weight').value);
+  const qty=parseInt(document.getElementById('qty').value,10);
+  if(!name || !(weight>0) || !(qty>0)) return;
+  holdings.push({name,metal,weight,qty});
+  save();
+  e.target.reset();
+  document.getElementById('qty').value=1;
+  dialog.close();
+});
+
+render();
+loadPrices();
+setInterval(loadPrices, 60000);
+</script>
+</body>
+</html>
