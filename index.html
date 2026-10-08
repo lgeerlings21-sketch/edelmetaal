@@ -6,7 +6,7 @@
 <title>Edelmetaal Dashboard</title>
 <meta name="theme-color" content="#111827">
 <style>
-:root{--bg:#f5f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--gold:#b88900;--silver:#64748b;--accent:#111827;--danger:#b91c1c}
+:root{--bg:#070707;--card:#111214;--text:#f5f5f5;--muted:#9ca3af;--line:#26272b;--gold:#d4af37;--silver:#9ca3af;--accent:#f5f5f5;--danger:#ef4444}
 *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
 .wrap{max-width:980px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}
 h1{font-size:28px;margin:0}.sub{color:var(--muted);font-size:14px;margin-top:5px}.status{font-size:12px;color:var(--muted);text-align:right}
@@ -14,14 +14,14 @@ h1{font-size:28px;margin:0}.sub{color:var(--muted);font-size:14px;margin-top:5px
 .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.big{font-size:28px;font-weight:800;margin-top:8px}.mid{font-size:20px;font-weight:750;margin-top:6px}
 .meta{font-size:13px;color:var(--muted);margin-top:5px}.gold{border-top:4px solid var(--gold)}.silver{border-top:4px solid var(--silver)}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}button{border:0;border-radius:12px;padding:11px 15px;font-weight:700;cursor:pointer;background:#111827;color:#fff}
-button.secondary{background:#fff;color:#111827;border:1px solid var(--line)}button.danger{background:#fff;color:var(--danger);border:1px solid #fecaca}
+button.secondary{background:#17181b;color:#f5f5f5;border:1px solid var(--line)}button.danger{background:#17181b;color:#f87171;border:1px solid #7f1d1d}button.edit{background:#23252a;color:#f5f5f5;border:1px solid var(--line)}
 .tablecard{padding:0;overflow:hidden}.tablehead{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-table{width:100%;border-collapse:collapse}th,td{padding:13px 14px;border-bottom:1px solid var(--line);font-size:14px;text-align:left}th{font-size:12px;color:var(--muted);background:#fafafa}
-td.num,th.num{text-align:right}.empty{text-align:center;color:var(--muted);padding:34px}.pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:#f3f4f6}
+table{width:100%;border-collapse:collapse}th,td{padding:13px 14px;border-bottom:1px solid var(--line);font-size:14px;text-align:left}th{font-size:12px;color:var(--muted);background:#17181b}
+td.num,th.num{text-align:right}.empty{text-align:center;color:var(--muted);padding:34px}.pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:#24262b}
 .pricebar{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.price{font-size:15px;font-weight:700}.tiny{font-size:12px;color:var(--muted)}
 dialog{border:0;border-radius:18px;padding:0;max-width:460px;width:calc(100% - 28px);box-shadow:0 20px 60px rgba(0,0,0,.25)}dialog::backdrop{background:rgba(0,0,0,.35)}
 .form{padding:20px}.form h2{margin:0 0 16px}.field{margin:12px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
-input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #d1d5db;font-size:16px;background:#fff}.formactions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #3a3b40;font-size:16px;background:#17181b;color:#f5f5f5}.formactions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
 .footer{font-size:12px;color:var(--muted);margin-top:16px;line-height:1.5}
 @media(max-width:700px){.wrap{padding:14px}.top{display:block}.status{text-align:left;margin-top:8px}.grid{grid-template-columns:1fr}.pricebar{grid-template-columns:1fr}.tablecard{overflow-x:auto}table{min-width:720px}h1{font-size:24px}.big{font-size:25px}}
 </style>
@@ -64,14 +64,14 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #d1d5db
 
 <dialog id="entryDialog">
 <form method="dialog" class="form" id="entryForm">
-  <h2>Toevoegen</h2>
+  <h2 id="dialogTitle">Toevoegen</h2>
   <div class="field"><label for="name">Naam</label><input id="name" required placeholder="Bijv. Gouden dukaat 1928"></div>
   <div class="field"><label for="metal">Metaal</label><select id="metal"><option value="gold">Goud</option><option value="silver">Zilver</option></select></div>
   <div class="field"><label for="weight">Puur gewicht per stuk (gram)</label><input id="weight" type="number" inputmode="decimal" step="0.0001" min="0.0001" required placeholder="Bijv. 3,494"></div>
   <div class="field"><label for="qty">Aantal</label><input id="qty" type="number" inputmode="numeric" step="1" min="1" required value="1"></div>
   <div class="field"><label for="paid">Betaalde prijs totaal (€) <span class="tiny">(optioneel)</span></label><input id="paid" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Bijv. 245,00"></div>
   <div class="field"><label for="note">Notitie <span class="tiny">(optioneel)</span></label><input id="note" type="text" maxlength="200" placeholder="Bijv. gekocht bij veiling / mooie kwaliteit"></div>
-  <div class="formactions"><button type="button" class="secondary" id="cancelBtn">Annuleren</button><button type="submit">Opslaan</button></div>
+  <div class="formactions"><button type="button" class="secondary" id="cancelBtn">Annuleren</button><button type="submit" id="saveBtn">Opslaan</button></div>
 </form>
 </dialog>
 
@@ -80,6 +80,7 @@ const OZT_G = 31.1034768;
 const storeKey = 'edelmetaal_holdings_v2';
 let holdings = JSON.parse(localStorage.getItem(storeKey) || '[]');
 let prices = {gold:null,silver:null,updated:null,stale:false};
+let editIndex = null;
 
 const euro = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(v || 0);
 const grams = v => new Intl.NumberFormat('nl-NL',{minimumFractionDigits:3,maximumFractionDigits:3}).format(v || 0) + ' g';
@@ -170,16 +171,39 @@ function render(){
       const rowPnl = hasPaid ? v-Number(x.paid) : null;
       const pnlText = rowPnl===null ? '—' : ((rowPnl>0?'+':'') + euro(rowPnl));
       const pnlStyle = rowPnl===null ? '' : (rowPnl>0 ? 'color:#15803d' : rowPnl<0 ? 'color:#b91c1c' : '');
-      return `<tr><td><strong>${escapeHtml(x.name)}</strong></td><td><span class="pill">${x.metal==='gold'?'Goud':'Zilver'}</span></td><td class="num">${grams(x.weight)}</td><td class="num">${x.qty}</td><td class="num">${grams(tw)}</td><td class="num"><strong>${euro(v)}</strong></td><td class="num">${hasPaid?euro(Number(x.paid)):'—'}</td><td class="num" style="${pnlStyle}">${pnlText}</td><td>${x.note?escapeHtml(x.note):'—'}</td><td class="num"><button class="danger" onclick="removeRow(${i})">Verwijder</button></td></tr>`;
+      return `<tr><td><strong>${escapeHtml(x.name)}</strong></td><td><span class="pill">${x.metal==='gold'?'Goud':'Zilver'}</span></td><td class="num">${grams(x.weight)}</td><td class="num">${x.qty}</td><td class="num">${grams(tw)}</td><td class="num"><strong>${euro(v)}</strong></td><td class="num">${hasPaid?euro(Number(x.paid)):'—'}</td><td class="num" style="${pnlStyle}">${pnlText}</td><td>${x.note?escapeHtml(x.note):'—'}</td><td class="num"><button class="edit" onclick="editRow(${i})">Bewerken</button> <button class="danger" onclick="removeRow(${i})">Verwijder</button></td></tr>`;
     }).join('') + '</tbody></table>';
 }
 
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
 function removeRow(i){ if(confirm('Deze regel verwijderen?')){ holdings.splice(i,1); save(); } }
 
+function openAdd(){
+  editIndex = null;
+  document.getElementById('dialogTitle').textContent = 'Toevoegen';
+  document.getElementById('saveBtn').textContent = 'Opslaan';
+  document.getElementById('entryForm').reset();
+  document.getElementById('qty').value = 1;
+  dialog.showModal();
+}
+
+function editRow(i){
+  const x = holdings[i];
+  editIndex = i;
+  document.getElementById('dialogTitle').textContent = 'Regel aanpassen';
+  document.getElementById('saveBtn').textContent = 'Wijzigingen opslaan';
+  document.getElementById('name').value = x.name || '';
+  document.getElementById('metal').value = x.metal || 'gold';
+  document.getElementById('weight').value = x.weight ?? '';
+  document.getElementById('qty').value = x.qty ?? 1;
+  document.getElementById('paid').value = Number.isFinite(Number(x.paid)) ? x.paid : '';
+  document.getElementById('note').value = x.note || '';
+  dialog.showModal();
+}
+
 const dialog=document.getElementById('entryDialog');
-document.getElementById('addBtn').onclick=()=>dialog.showModal();
-document.getElementById('cancelBtn').onclick=()=>dialog.close();
+document.getElementById('addBtn').onclick=openAdd;
+document.getElementById('cancelBtn').onclick=()=>{editIndex=null;dialog.close();};
 document.getElementById('refreshBtn').onclick=loadPrices;
 document.getElementById('entryForm').addEventListener('submit',e=>{
   e.preventDefault();
@@ -191,10 +215,18 @@ document.getElementById('entryForm').addEventListener('submit',e=>{
   const paid=paidRaw==='' ? null : num(paidRaw);
   const note=document.getElementById('note').value.trim();
   if(!name || !(weight>0) || !(qty>0) || (paid!==null && !(paid>=0))) return;
-  holdings.push({name,metal,weight,qty,paid,note});
+  const record = {name,metal,weight,qty,paid,note};
+  if(editIndex === null){
+    holdings.push(record);
+  } else {
+    holdings[editIndex] = record;
+  }
   save();
+  editIndex = null;
   e.target.reset();
   document.getElementById('qty').value=1;
+  document.getElementById('dialogTitle').textContent = 'Toevoegen';
+  document.getElementById('saveBtn').textContent = 'Opslaan';
   dialog.close();
 });
 
