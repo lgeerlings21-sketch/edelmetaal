@@ -40,8 +40,8 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #d1d5db
   </div>
 
   <div class="pricebar">
-    <div class="card"><div class="label">Live goud spot</div><div class="price" id="goldSpot">—</div><div class="tiny">EUR per gram</div></div>
-    <div class="card"><div class="label">Live zilver spot</div><div class="price" id="silverSpot">—</div><div class="tiny">EUR per gram</div></div>
+    <div class="card"><div class="label">Live goud spot</div><div class="price" id="goldSpot">—</div><div class="tiny">EUR per kilogram</div></div>
+    <div class="card"><div class="label">Live zilver spot</div><div class="price" id="silverSpot">—</div><div class="tiny">EUR per kilogram</div></div>
   </div>
 
   <div class="actions">
@@ -54,7 +54,7 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #d1d5db
     <div id="tableWrap"></div>
   </div>
 
-  <div class="footer">Je gegevens worden alleen in deze browser opgeslagen. Spotprijzen komen van XAUS en zijn indicatieve mid-market referentieprijzen. De app ververst bij openen en daarna automatisch ongeveer elke minuut.</div>
+  <div class="footer">Je gegevens worden alleen in deze browser opgeslagen. Spotprijzen komen van XAUS en zijn indicatieve mid-market referentieprijzen. De app controleert bij openen en daarna automatisch elke 30 seconden. De getoonde spotprijzen zijn EUR per kilogram; je bezit wordt intern nauwkeurig per gram gewaardeerd.</div>
 </div>
 
 <dialog id="entryDialog">
@@ -82,9 +82,11 @@ function save(){ localStorage.setItem(storeKey, JSON.stringify(holdings)); rende
 
 async function loadPrices(){
   const status = document.getElementById('status');
-  status.textContent = 'Spotprijzen laden…';
+  const btn = document.getElementById('refreshBtn');
+  status.textContent = 'Spotprijzen controleren…';
+  if(btn){ btn.disabled = true; btn.textContent = 'Verversen…'; }
   try{
-    const fresh = Math.floor(Date.now()/60000);
+    const fresh = Date.now();
     const res = await fetch('https://xaus.com/api/v1/spot?currency=EUR&unit=gram&compact=1&fresh='+fresh,{cache:'no-store'});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const d = await res.json();
@@ -93,13 +95,22 @@ async function loadPrices(){
     const silverUsdOz = Number(d.silver_usd_oz);
     const silver = silverUsdOz * fx / OZT_G;
     if(!Number.isFinite(gold) || !Number.isFinite(silver)) throw new Error('Ongeldige koersdata');
-    prices = {gold,silver,updated:d.updated_at || new Date().toISOString(),stale:!!d.stale};
+    prices = {
+      gold,
+      silver,
+      updated:d.updated_at || new Date().toISOString(),
+      priceAsOf:d.price_as_of || d?.data_state?.as_of || d.updated_at || new Date().toISOString(),
+      checkedAt:new Date().toISOString(),
+      stale:!!d.stale || d?.data_state?.status === 'stale'
+    };
     localStorage.setItem('edelmetaal_last_prices', JSON.stringify(prices));
     render();
   }catch(e){
     const cached = JSON.parse(localStorage.getItem('edelmetaal_last_prices') || 'null');
     if(cached){ prices = cached; render(); status.textContent = 'Laatste bekende prijzen · live feed tijdelijk niet bereikbaar'; }
     else status.textContent = 'Spotprijzen konden niet worden geladen';
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Spotprijs verversen'; }
   }
 }
 
@@ -116,13 +127,17 @@ function render(){
   document.getElementById('goldWeight').textContent = grams(gw);
   document.getElementById('silverWeight').textContent = grams(sw);
   document.getElementById('totalItems').textContent = count + (count===1?' stuk':' stuks');
-  document.getElementById('goldSpot').textContent = prices.gold ? euro(prices.gold) : '—';
-  document.getElementById('silverSpot').textContent = prices.silver ? euro(prices.silver) : '—';
+  document.getElementById('goldSpot').textContent = prices.gold ? euro(prices.gold * 1000) : '—';
+  document.getElementById('silverSpot').textContent = prices.silver ? euro(prices.silver * 1000) : '—';
   document.getElementById('rowCount').textContent = holdings.length + (holdings.length===1?' regel':' regels');
 
   if(prices.updated){
-    const dt = new Date(prices.updated);
-    document.getElementById('status').textContent = (prices.stale?'Laatste bekende spot · ':'Live spot · ') + dt.toLocaleString('nl-NL',{dateStyle:'short',timeStyle:'short'});
+    const quoteDt = new Date(prices.priceAsOf || prices.updated);
+    const checkDt = new Date(prices.checkedAt || prices.updated);
+    document.getElementById('status').textContent =
+      (prices.stale ? 'Laatste bekende spot' : 'Live spot') +
+      ' · koers ' + quoteDt.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) +
+      ' · gecontroleerd ' + checkDt.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }
 
   const wrap = document.getElementById('tableWrap');
@@ -158,7 +173,7 @@ document.getElementById('entryForm').addEventListener('submit',e=>{
 
 render();
 loadPrices();
-setInterval(loadPrices, 60000);
+setInterval(loadPrices, 30000);
 </script>
 </body>
 </html>
