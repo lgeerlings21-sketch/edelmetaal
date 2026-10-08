@@ -40,6 +40,11 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #d1d5db
   </div>
 
   <div class="pricebar">
+    <div class="card"><div class="label">Profit / loss</div><div class="price" id="pnlValue">—</div><div class="tiny" id="pnlMeta">Alleen posities met aankoopprijs</div></div>
+    <div class="card"><div class="label">Bekende aankoopwaarde</div><div class="price" id="knownCost">—</div><div class="tiny" id="knownCount">0 regels met aankoopprijs</div></div>
+  </div>
+
+  <div class="pricebar">
     <div class="card"><div class="label">Live goud spot</div><div class="price" id="goldSpot">—</div><div class="tiny">EUR per kilogram</div></div>
     <div class="card"><div class="label">Live zilver spot</div><div class="price" id="silverSpot">—</div><div class="tiny">EUR per kilogram</div></div>
   </div>
@@ -64,6 +69,8 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #d1d5db
   <div class="field"><label for="metal">Metaal</label><select id="metal"><option value="gold">Goud</option><option value="silver">Zilver</option></select></div>
   <div class="field"><label for="weight">Puur gewicht per stuk (gram)</label><input id="weight" type="number" inputmode="decimal" step="0.0001" min="0.0001" required placeholder="Bijv. 3,494"></div>
   <div class="field"><label for="qty">Aantal</label><input id="qty" type="number" inputmode="numeric" step="1" min="1" required value="1"></div>
+  <div class="field"><label for="paid">Betaalde prijs totaal (€) <span class="tiny">(optioneel)</span></label><input id="paid" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Bijv. 245,00"></div>
+  <div class="field"><label for="note">Notitie <span class="tiny">(optioneel)</span></label><input id="note" type="text" maxlength="200" placeholder="Bijv. gekocht bij veiling / mooie kwaliteit"></div>
   <div class="formactions"><button type="button" class="secondary" id="cancelBtn">Annuleren</button><button type="submit">Opslaan</button></div>
 </form>
 </dialog>
@@ -120,6 +127,13 @@ function render(){
   const gv = prices.gold ? gw*prices.gold : 0;
   const sv = prices.silver ? sw*prices.silver : 0;
   const count = holdings.reduce((s,x)=>s+x.qty,0);
+  const known = holdings.filter(x=>Number.isFinite(Number(x.paid)));
+  const knownCost = known.reduce((s,x)=>s+Number(x.paid),0);
+  const knownCurrent = known.reduce((s,x)=>{
+    const p = x.metal==='gold' ? prices.gold : prices.silver;
+    return s + (p ? x.weight*x.qty*p : 0);
+  },0);
+  const pnl = knownCurrent - knownCost;
 
   document.getElementById('totalValue').textContent = euro(gv+sv);
   document.getElementById('goldValue').textContent = euro(gv);
@@ -130,6 +144,12 @@ function render(){
   document.getElementById('goldSpot').textContent = prices.gold ? euro(prices.gold * 1000) : '—';
   document.getElementById('silverSpot').textContent = prices.silver ? euro(prices.silver * 1000) : '—';
   document.getElementById('rowCount').textContent = holdings.length + (holdings.length===1?' regel':' regels');
+  document.getElementById('knownCost').textContent = known.length ? euro(knownCost) : '—';
+  document.getElementById('knownCount').textContent = known.length + (known.length===1?' regel met aankoopprijs':' regels met aankoopprijs');
+  const pnlEl = document.getElementById('pnlValue');
+  pnlEl.textContent = known.length ? ((pnl>0?'+':'') + euro(pnl)) : '—';
+  pnlEl.style.color = !known.length ? '' : (pnl>0 ? '#15803d' : pnl<0 ? '#b91c1c' : '#111827');
+  document.getElementById('pnlMeta').textContent = known.length ? ('Rendement ' + (knownCost>0 ? ((pnl/knownCost)*100).toLocaleString('nl-NL',{minimumFractionDigits:1,maximumFractionDigits:1})+'%' : '—')) : 'Alleen posities met aankoopprijs';
 
   if(prices.updated){
     const quoteDt = new Date(prices.priceAsOf || prices.updated);
@@ -143,10 +163,14 @@ function render(){
   const wrap = document.getElementById('tableWrap');
   if(!holdings.length){ wrap.innerHTML='<div class="empty">Nog niets toegevoegd.</div>'; return; }
 
-  wrap.innerHTML = `<table><thead><tr><th>Naam</th><th>Metaal</th><th class="num">Puur/stuk</th><th class="num">Aantal</th><th class="num">Totaal puur</th><th class="num">Waarde</th><th></th></tr></thead><tbody>` +
+  wrap.innerHTML = `<table><thead><tr><th>Naam</th><th>Metaal</th><th class="num">Puur/stuk</th><th class="num">Aantal</th><th class="num">Totaal puur</th><th class="num">Waarde</th><th class="num">Betaald</th><th class="num">P/L</th><th>Notitie</th><th></th></tr></thead><tbody>` +
     holdings.map((x,i)=>{
       const tw=x.weight*x.qty, p=x.metal==='gold'?prices.gold:prices.silver, v=p?tw*p:0;
-      return `<tr><td><strong>${escapeHtml(x.name)}</strong></td><td><span class="pill">${x.metal==='gold'?'Goud':'Zilver'}</span></td><td class="num">${grams(x.weight)}</td><td class="num">${x.qty}</td><td class="num">${grams(tw)}</td><td class="num"><strong>${euro(v)}</strong></td><td class="num"><button class="danger" onclick="removeRow(${i})">Verwijder</button></td></tr>`;
+      const hasPaid = Number.isFinite(Number(x.paid));
+      const rowPnl = hasPaid ? v-Number(x.paid) : null;
+      const pnlText = rowPnl===null ? '—' : ((rowPnl>0?'+':'') + euro(rowPnl));
+      const pnlStyle = rowPnl===null ? '' : (rowPnl>0 ? 'color:#15803d' : rowPnl<0 ? 'color:#b91c1c' : '');
+      return `<tr><td><strong>${escapeHtml(x.name)}</strong></td><td><span class="pill">${x.metal==='gold'?'Goud':'Zilver'}</span></td><td class="num">${grams(x.weight)}</td><td class="num">${x.qty}</td><td class="num">${grams(tw)}</td><td class="num"><strong>${euro(v)}</strong></td><td class="num">${hasPaid?euro(Number(x.paid)):'—'}</td><td class="num" style="${pnlStyle}">${pnlText}</td><td>${x.note?escapeHtml(x.note):'—'}</td><td class="num"><button class="danger" onclick="removeRow(${i})">Verwijder</button></td></tr>`;
     }).join('') + '</tbody></table>';
 }
 
@@ -163,8 +187,11 @@ document.getElementById('entryForm').addEventListener('submit',e=>{
   const metal=document.getElementById('metal').value;
   const weight=num(document.getElementById('weight').value);
   const qty=parseInt(document.getElementById('qty').value,10);
-  if(!name || !(weight>0) || !(qty>0)) return;
-  holdings.push({name,metal,weight,qty});
+  const paidRaw=document.getElementById('paid').value.trim();
+  const paid=paidRaw==='' ? null : num(paidRaw);
+  const note=document.getElementById('note').value.trim();
+  if(!name || !(weight>0) || !(qty>0) || (paid!==null && !(paid>=0))) return;
+  holdings.push({name,metal,weight,qty,paid,note});
   save();
   e.target.reset();
   document.getElementById('qty').value=1;
